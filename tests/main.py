@@ -1,4 +1,22 @@
-from bitcoinpython import network
+from bitcoinpython import Key, PrivateKeyTestnet
+from cashaddress import convert
 
 
-print(network.get_fee('fast'),network.get_fee('medium'),network.get_fee('slow'))
+# k = Key('L3KavUvcjBj7pzKBMS4doKyJpBY4nJJbm31VnVwhcC26mTvCP3Lh')
+k = PrivateKeyTestnet('cPW1zL9JJzgTKwQyHYeQ8KE5Cdo33fGE15QcZiWDCWKHhU43KsU2')
+# print(k.public_key)
+# print(k.address)
+# print(k._public_key)
+# print(k.public_point)
+# address = convert.to_legacy_address(k.address)
+# print(address)
+# bchaddr = convert.to_cash_address(address)
+# print(bchaddr)
+# print(k.to_wif())
+# print(k.balance)
+# print(k.unspents)
+# print(k.transactions)
+print(k.get_unspents())
+# tx = k.create_transaction([('bchtest:qzt6sz836wdwscld0pgq2prcpck2pssmwge9q87pe9', 0.001, 'bch')])
+
+# print(tx)
