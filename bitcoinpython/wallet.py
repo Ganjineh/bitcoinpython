@@ -44,7 +44,8 @@ class BaseKey:
     def __init__(self, wif=None):
         if wif:
             if isinstance(wif, str):
-                private_key_bytes, compressed, version = wif_to_bytes(wif)
+                private_key_bytes, compressed, _ = wif_to_bytes(wif)
+                #todo
                 self._pk = ECPrivateKey(private_key_bytes)
             elif isinstance(wif, ECPrivateKey):
                 self._pk = wif
@@ -291,8 +292,9 @@ class PrivateKey(BaseKey):
         tx_hex = self.create_transaction(
             outputs, fee=fee, leftover=leftover, combine=combine, message=message, unspents=unspents
         )
-
-        NetworkAPI.broadcast_tx(tx_hex)
+        
+        #todo
+        # NetworkAPI.broadcast_tx(tx_hex)
 
         return calc_txid(tx_hex)
 
@@ -487,7 +489,7 @@ class PrivateKeyTestnet(BaseKey):
 
         :rtype: ``list`` of :class:`~bitcoinpython.network.meta.Unspent`
         """
-        self.unspents[:] = NetworkAPI.get_unspent_testnet(self.address)
+        self.unspents[:] = NetworkAPI.get_unspent(self.address)
         self.balance = sum(unspent.amount for unspent in self.unspents)
         return self.unspents
 
@@ -496,7 +498,7 @@ class PrivateKeyTestnet(BaseKey):
 
         :rtype: ``list`` of ``str`` transaction IDs
         """
-        self.transactions[:] = NetworkAPI.get_transactions_testnet(self.address)
+        self.transactions[:] = NetworkAPI.get_transactions(self.address)
         return self.transactions
 
     def create_transaction(self, outputs, fee=None, leftover=None, combine=True,
@@ -586,7 +588,8 @@ class PrivateKeyTestnet(BaseKey):
             outputs, fee=fee, leftover=leftover, combine=combine, message=message, unspents=unspents
         )
 
-        NetworkAPI.broadcast_tx_testnet(tx_hex)
+        #todo
+        # NetworkAPI.broadcast_tx_testnet(tx_hex)
 
         return calc_txid(tx_hex)
 
@@ -630,7 +633,7 @@ class PrivateKeyTestnet(BaseKey):
         :rtype: ``str``
         """
         unspents, outputs = sanitize_tx_data(
-            unspents or NetworkAPI.get_unspent_testnet(address),
+            unspents or NetworkAPI.get_unspent(address),
             outputs,
             fee or get_fee(),
             leftover or address,
