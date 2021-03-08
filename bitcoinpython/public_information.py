@@ -7,7 +7,15 @@ def get_balance(address, currency='satoshi'):
     balance = 0
     unspents[:] = NetworkAPI.get_unspent(address)
     balance = sum(unspent.amount for unspent in unspents)    
-    return satoshi_to_currency_cached(balance, currency)
+    return satoshi_to_currency_cached(balance, currency.lower())
+
+def get_balance_btc(address, currency='satoshi'):
+    unspents = []
+    balance = 0
+    unspents[:] = NetworkAPI.get_unspent_btc(address)
+    balance = sum(unspent.amount for unspent in unspents)    
+    return satoshi_to_currency_cached(balance, currency.lower())
+
 
 def get_transactions(address):
     transactions = []
