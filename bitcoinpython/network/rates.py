@@ -619,7 +619,7 @@ def currency_to_satoshi_local_cache(f):
 
 
 @currency_to_satoshi_local_cache
-def currency_to_satoshi_local_cached():
+def currency_to_satoshi_local_cached(amount, currency):
     pass  # pragma: no cover
 
 

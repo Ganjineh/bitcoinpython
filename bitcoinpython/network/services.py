@@ -29,128 +29,185 @@ class InsightAPI:
     TX_PUSH_PARAM = ''
 
     @classmethod
+    def get_tx_amount(cls, txid, txindex):
+        r = requests.get(cls.MAIN_TX_AMOUNT_API.format(
+            txid), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        response = r.json(parse_float=Decimal)
+        return (Decimal(response['vout'][txindex]['value']) * BCH_TO_SAT_MULTIPLIER).normalize()
+
+    @classmethod
+    def broadcast_tx(cls, tx_hex):  # pragma: no cover
+        r = requests.post(cls.MAIN_TX_PUSH_API, json={
+                          cls.TX_PUSH_PARAM: tx_hex, 'network': 'mainnet', 'coin': 'BCH'}, timeout=DEFAULT_TIMEOUT)
+        return True if r.status_code == 200 else False
+
+
+class BitcoinDotComAPI():
+    """ rest.bitcoin.com API """
+    MAIN_ENDPOINT = 'https://rest.bitcoin.com/v2/'
+    MAIN_ADDRESS_API = MAIN_ENDPOINT + 'address/details/{}'
+    MAIN_UNSPENT_API = MAIN_ENDPOINT + 'address/utxo/{}'
+    MAIN_TX_PUSH_API = MAIN_ENDPOINT + 'rawtransactions/sendRawTransaction/{}'
+    MAIN_TX_API = MAIN_ENDPOINT + 'transaction/details/{}'
+    MAIN_TX_AMOUNT_API = MAIN_TX_API
+    MAIN_RAW_API = MAIN_ENDPOINT + 'transaction/details/{}'
+    TX_PUSH_PARAM = 'rawtx'
+
+    @classmethod
     def get_balance(cls, address):
-        r = requests.get(cls.MAIN_BALANCE_API.format(address), timeout=DEFAULT_TIMEOUT)
-        if r.status_code != 200:  # pragma: no cover
-            raise ConnectionError
-        return r.json()
+        r = requests.get(cls.MAIN_ADDRESS_API.format(address),
+                         timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        data = r.json()
+        balance = data['balanceSat'] + data['unconfirmedBalanceSat']
+        return balance
 
     @classmethod
     def get_transactions(cls, address):
-        r = requests.get(cls.MAIN_ADDRESS_API.format(address), timeout=DEFAULT_TIMEOUT)
-        if r.status_code != 200:  # pragma: no cover
-            raise ConnectionError
+        r = requests.get(cls.MAIN_ADDRESS_API.format(address),
+                         timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
         return r.json()['transactions']
 
     @classmethod
     def get_transaction(cls, txid):
-        r = requests.get(cls.MAIN_TX_API.format(txid), timeout=DEFAULT_TIMEOUT)
-        if r.status_code != 200:  # pragma: no cover
-            raise ConnectionError
+        r = requests.get(cls.MAIN_TX_API.format(txid),
+                         timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
         response = r.json(parse_float=Decimal)
 
         tx = Transaction(response['txid'], response['blockheight'],
-                (Decimal(response['valueIn']) * BCH_TO_SAT_MULTIPLIER).normalize(),
-                (Decimal(response['valueOut']) * BCH_TO_SAT_MULTIPLIER).normalize(),
-                (Decimal(response['fees']) * BCH_TO_SAT_MULTIPLIER).normalize())
+                         (Decimal(response['valueIn']) *
+                          BCH_TO_SAT_MULTIPLIER).normalize(),
+                         (Decimal(response['valueOut']) *
+                          BCH_TO_SAT_MULTIPLIER).normalize(),
+                         (Decimal(response['fees']) * BCH_TO_SAT_MULTIPLIER).normalize())
 
         for txin in response['vin']:
-            part = TxPart(txin['addr'], txin['valueSat'], txin['scriptSig']['asm'])
+            part = TxPart(txin['cashAddress'],
+                          txin['value'],
+                          txin['scriptSig']['asm'])
             tx.add_input(part)
 
         for txout in response['vout']:
             addr = None
-            if 'addresses' in txout['scriptPubKey'] and txout['scriptPubKey']['addresses'] is not None:
-                addr = txout['scriptPubKey']['addresses'][0]
+            if 'cashAddrs' in txout['scriptPubKey'] and txout['scriptPubKey']['cashAddrs'] is not None:
+                addr = txout['scriptPubKey']['cashAddrs'][0]
 
             part = TxPart(addr,
-                    (Decimal(txout['value']) * BCH_TO_SAT_MULTIPLIER).normalize(),
-                    txout['scriptPubKey']['asm'])
+                          (Decimal(txout['value']) *
+                           BCH_TO_SAT_MULTIPLIER).normalize(),
+                          txout['scriptPubKey']['asm'])
             tx.add_output(part)
 
         return tx
 
     @classmethod
     def get_tx_amount(cls, txid, txindex):
-        r = requests.get(cls.MAIN_TX_AMOUNT_API.format(txid), timeout=DEFAULT_TIMEOUT)
-        if r.status_code != 200:  # pragma: no cover
-            raise ConnectionError
+        r = requests.get(cls.MAIN_TX_AMOUNT_API.format(
+            txid), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
         response = r.json(parse_float=Decimal)
         return (Decimal(response['vout'][txindex]['value']) * BCH_TO_SAT_MULTIPLIER).normalize()
 
     @classmethod
     def get_unspent(cls, address):
-        r = requests.get(cls.MAIN_UNSPENT_API.format(address), timeout=DEFAULT_TIMEOUT)
-        if r.status_code != 200:  # pragma: no cover
-            raise ConnectionError
+        r = requests.get(cls.MAIN_UNSPENT_API.format(address),
+                         timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
         return [
-            Unspent(tx['value'],
+            Unspent(currency_to_satoshi(tx['amount'], 'bch'),
                     tx['confirmations'],
-                    tx['tx_hash'][0])            
-            for tx in r.json()['data']['list']
+                    r.json()['scriptPubKey'],
+                    tx['txid'],
+                    tx['vout'])
+            for tx in r.json()['utxos']
         ]
+
+    @classmethod
+    def get_raw_transaction(cls, txid):
+        r = requests.get(cls.MAIN_RAW_API.format(
+            txid), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        response = r.json(parse_float=Decimal)
+        return response
 
     @classmethod
     def broadcast_tx(cls, tx_hex):  # pragma: no cover
-        r = requests.post(cls.MAIN_TX_PUSH_API, json={cls.TX_PUSH_PARAM: tx_hex}, timeout=DEFAULT_TIMEOUT)
+        r = requests.get(cls.MAIN_TX_PUSH_API.format(tx_hex))
         return True if r.status_code == 200 else False
 
 
-class BTCDotComAPI(InsightAPI):
-    """
-    btc.com
-    No testnet, sadly. Also uses legacy addresses only.
-    """
-    MAIN_ENDPOINT = 'https://chain.api.btc.com/v3/'
+class BitcoreAPI(InsightAPI):
+    """ Insight API v8 """
+    MAIN_ENDPOINT = 'https://api.bitcore.io/api/BCH/mainnet/'
     MAIN_ADDRESS_API = MAIN_ENDPOINT + 'address/{}'
-    # MAIN_BALANCE_API = MAIN_ADDRESS_API + '/balance'
-    MAIN_UNSPENT_API = MAIN_ADDRESS_API + '/unspent'
-    # MAIN_TX_PUSH_API = MAIN_ENDPOINT + 'tx/send'
+    MAIN_BALANCE_API = MAIN_ADDRESS_API + '/balance'
+    MAIN_UNSPENT_API = MAIN_ADDRESS_API + '/?unspent=true'
+    MAIN_TX_PUSH_API = MAIN_ENDPOINT + 'tx/send'
     MAIN_TX_API = MAIN_ENDPOINT + 'tx/{}'
-    # MAIN_TX_AMOUNT_API = MAIN_TX_API
-    # TX_PUSH_PARAM = 'rawtx'
-
-    @classmethod
-    def get_balance(cls, address):
-        address = cashaddress.to_legacy_address(address)
-        r = requests.get(cls.MAIN_BALANCE_API.format(address), timeout=DEFAULT_TIMEOUT)
-        if r.status_code != 200:  # pragma: no cover
-            raise ConnectionError
-        return r.json()
-
-    @classmethod
-    def get_transactions(cls, address):
-        address = cashaddress.to_legacy_address(address)
-        r = requests.get(cls.MAIN_ADDRESS_API.format(address), timeout=DEFAULT_TIMEOUT)
-        if r.status_code != 200:  # pragma: no cover
-            raise ConnectionError
-        return r.json()['transactions']
+    MAIN_TX_AMOUNT_API = MAIN_TX_API
 
     @classmethod
     def get_unspent(cls, address):
-        address = cashaddress.to_legacy_address(address)
-        r = requests.get(cls.MAIN_UNSPENT_API.format(address), timeout=DEFAULT_TIMEOUT)
-        if r.status_code != 200:  # pragma: no cover
-            raise ConnectionError
-        if r.json()['data']['list'] is None:
-            return []
+        address = address.replace('bitcoincash:', '')
+        r = requests.get(cls.MAIN_UNSPENT_API.format(
+            address), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
         return [
-            Unspent(tx['value'],
+            Unspent(currency_to_satoshi(tx['value'], 'satoshi'),
                     tx['confirmations'],
-                    tx['tx_hash'][0])            
-            for tx in r.json()['data']['list']
+                    tx['script'],
+                    tx['mintTxid'],
+                    tx['mintIndex'])
+            for tx in r.json()
         ]
 
+    @classmethod
+    def get_transactions(cls, address):
+        address = address.replace('bitcoincash:', '')
+        r = requests.get(cls.MAIN_ADDRESS_API.format(
+            address), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        return [tx['mintTxid'] for tx in r.json()]
+
+    @classmethod
+    def get_balance(cls, address):
+        r = requests.get(cls.MAIN_BALANCE_API.format(
+            address), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        return r.json()['balance']
 
 class NetworkAPI:
-    IGNORED_ERRORS = (ConnectionError,
-                      requests.exceptions.ConnectionError,
-                      requests.exceptions.Timeout,
-                      requests.exceptions.ReadTimeout)
+    IGNORED_ERRORS = (
+        requests.exceptions.RequestException,
+        requests.exceptions.HTTPError,
+        requests.exceptions.ConnectionError,
+        requests.exceptions.ProxyError,
+        requests.exceptions.SSLError,
+        requests.exceptions.Timeout,
+        requests.exceptions.ConnectTimeout,
+        requests.exceptions.ReadTimeout,
+        requests.exceptions.TooManyRedirects,
+        requests.exceptions.ChunkedEncodingError,
+        requests.exceptions.ContentDecodingError,
+        requests.exceptions.StreamConsumedError,
+    )
 
-    GET_BALANCE_MAIN = [BTCDotComAPI.get_balance]
-    GET_TRANSACTIONS_MAIN = [BTCDotComAPI.get_transactions]
-    GET_UNSPENT_MAIN = [BTCDotComAPI.get_unspent]
+    # Mainnet
+    GET_BALANCE_MAIN = [BitcoinDotComAPI.get_balance,
+                        BitcoreAPI.get_balance]
+    GET_TRANSACTIONS_MAIN = [BitcoinDotComAPI.get_transactions,
+                             BitcoreAPI.get_transactions]
+    GET_UNSPENT_MAIN = [BitcoinDotComAPI.get_unspent,
+                        BitcoreAPI.get_unspent]
+    BROADCAST_TX_MAIN = [BitcoinDotComAPI.broadcast_tx,
+                         BitcoreAPI.broadcast_tx]
+    GET_TX_MAIN = [BitcoinDotComAPI.get_transaction]
+    GET_TX_AMOUNT_MAIN = [BitcoinDotComAPI.get_tx_amount,
+                          BitcoreAPI.get_tx_amount]
+    GET_RAW_TX_MAIN = [BitcoinDotComAPI.get_raw_transaction]
 
     @classmethod
     def get_balance(cls, address):
@@ -188,6 +245,43 @@ class NetworkAPI:
 
         raise ConnectionError('All APIs are unreachable.')
 
+    @classmethod
+    def get_transaction(cls, txid):
+        """Gets the full transaction details.
+
+        :param txid: The transaction id in question.
+        :type txid: ``str``
+        :raises ConnectionError: If all API services fail.
+        :rtype: ``Transaction``
+        """
+
+        for api_call in cls.GET_TX_MAIN:
+            try:
+                return api_call(txid)
+            except cls.IGNORED_ERRORS:
+                pass
+
+        raise ConnectionError('All APIs are unreachable.')
+
+    @classmethod
+    def get_tx_amount(cls, txid, txindex):
+        """Gets the amount of a given transaction output.
+
+        :param txid: The transaction id in question.
+        :type txid: ``str``
+        :param txindex: The transaction index in question.
+        :type txindex: ``int``
+        :raises ConnectionError: If all API services fail.
+        :rtype: ``Decimal``
+        """
+
+        for api_call in cls.GET_TX_AMOUNT_MAIN:
+            try:
+                return api_call(txid, txindex)
+            except cls.IGNORED_ERRORS:
+                pass
+
+        raise ConnectionError('All APIs are unreachable.')
 
     @classmethod
     def get_unspent(cls, address):
@@ -196,7 +290,7 @@ class NetworkAPI:
         :param address: The address in question.
         :type address: ``str``
         :raises ConnectionError: If all API services fail.
-        :rtype: ``list`` of :class:`~bitcoinpython.network.meta.Unspent`
+        :rtype: ``list`` of :class:`~bitcash.network.meta.Unspent`
         """
 
         for api_call in cls.GET_UNSPENT_MAIN:
@@ -204,5 +298,48 @@ class NetworkAPI:
                 return api_call(address)
             except cls.IGNORED_ERRORS:
                 pass
+
+        raise ConnectionError('All APIs are unreachable.')
+
+    @classmethod
+    def get_raw_transaction(cls, txid):
+        """Gets the raw, unparsed transaction details.
+
+        :param txid: The transaction id in question.
+        :type txid: ``str``
+        :raises ConnectionError: If all API services fail.
+        :rtype: ``Transaction``
+        """
+
+        for api_call in cls.GET_RAW_TX_MAIN:
+            try:
+                return api_call(txid)
+            except cls.IGNORED_ERRORS:
+                pass
+
+        raise ConnectionError('All APIs are unreachable.')
+
+    @classmethod
+    def broadcast_tx(cls, tx_hex):  # pragma: no cover
+        """Broadcasts a transaction to the blockchain.
+
+        :param tx_hex: A signed transaction in hex form.
+        :type tx_hex: ``str``
+        :raises ConnectionError: If all API services fail.
+        """
+        success = None
+
+        for api_call in cls.BROADCAST_TX_MAIN:
+            try:
+                success = api_call(tx_hex)
+                if not success:
+                    continue
+                return
+            except cls.IGNORED_ERRORS:
+                pass
+
+        if success is False:
+            raise ConnectionError('Transaction broadcast failed, or '
+                                  'Unspents were already used.')
 
         raise ConnectionError('All APIs are unreachable.')
