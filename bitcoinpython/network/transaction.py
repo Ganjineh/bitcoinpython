@@ -27,9 +27,9 @@ class Transaction:
 
     def __repr__(self):
         return "{} in block {} for {:.0f} satoshi ({:.0f} sent + {:.0f} fee) with {} input{} and {} output{}".format(
-                self.txid, self.block, self.amount_in, self.amount_out, self.amount_fee,
-                len(self.inputs), '' if len(self.inputs) == 1 else 's',
-                len(self.outputs), '' if len(self.outputs) == 1 else 's')
+            self.txid, self.block, self.amount_in, self.amount_out, self.amount_fee,
+            len(self.inputs), '' if len(self.inputs) == 1 else 's',
+            len(self.outputs), '' if len(self.outputs) == 1 else 's')
 
 
 class TxPart:
@@ -61,4 +61,3 @@ class TxPart:
             return "OP_RETURN data with {:.0f} satoshi burned".format(self.amount)
         else:
             return "{} with {:.0f} satoshi".format(self.address, self.amount)
-

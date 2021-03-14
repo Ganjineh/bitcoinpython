@@ -4,12 +4,14 @@ from coincurve import verify_signature as _vs
 from bitcoinpython.base58 import b58decode_check, b58encode_check
 from bitcoinpython.crypto import ripemd160_sha256
 from bitcoinpython.curve import x_to_y
+from bitcoinpython.exceptions import InvalidAddress
 
 MAIN_PUBKEY_HASH = b'\x00'
 MAIN_SCRIPT_HASH = b'\x05'
 MAIN_PRIVATE_KEY = b'\x80'
 MAIN_BIP32_PUBKEY = b'\x04\x88\xb2\x1e'
 MAIN_BIP32_PRIVKEY = b'\x04\x88\xad\xe4'
+
 TEST_PUBKEY_HASH = b'\x6f'
 TEST_SCRIPT_HASH = b'\xc4'
 TEST_PRIVATE_KEY = b'\xef'
@@ -36,12 +38,18 @@ def verify_sig(signature, data, public_key):
 
 
 def address_to_public_key_hash(address):
-    # LEGACYADDRESSDEPRECATION
-    # FIXME: This legacy address support will be removed.
-    address = cashaddress.to_cash_address(address)
-    get_version(address)
-    Address = cashaddress.Address._cash_string(address)
-    return bytes(Address.payload)
+    if ":" not in address:
+        # Address must be a cash address, legacy no longer supported
+        raise InvalidAddress
+
+    address = cashaddress.Address._cash_string(address)
+
+    if "P2PKH" not in address.version:
+        # Bitcash currently only has support for P2PKH transaction types
+        # P2SH and others will raise ValueError
+        raise ValueError
+
+    return bytes(address.payload)
 
 
 def get_version(address):
