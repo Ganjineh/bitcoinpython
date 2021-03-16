@@ -148,11 +148,33 @@ class BitcoreAPI(InsightAPI):
     MAIN_TX_PUSH_API = MAIN_ENDPOINT + 'tx/send'
     MAIN_TX_API = MAIN_ENDPOINT + 'tx/{}'
     MAIN_TX_AMOUNT_API = MAIN_TX_API
+    """ for BTC  """
+    MAIN_ENDPOINT_BTC = 'https://api.bitcore.io/api/BTC/mainnet/'
+    MAIN_ADDRESS_API_BTC = MAIN_ENDPOINT_BTC + 'address/{}'
+    MAIN_BALANCE_API_BTC = MAIN_ADDRESS_API_BTC + '/balance'
+    MAIN_UNSPENT_API_BTC = MAIN_ADDRESS_API_BTC + '/?unspent=true'
+    MAIN_TX_PUSH_API_BTC = MAIN_ENDPOINT_BTC + 'tx/send'
+    MAIN_TX_API_BTC = MAIN_ENDPOINT_BTC + 'tx/{}'
+    MAIN_TX_AMOUNT_API_BTC = MAIN_TX_API_BTC
 
     @classmethod
     def get_unspent(cls, address):
         address = address.replace('bitcoincash:', '')
         r = requests.get(cls.MAIN_UNSPENT_API.format(
+            address), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        return [
+            Unspent(currency_to_satoshi(tx['value'], 'satoshi'),
+                    tx['confirmations'],
+                    tx['script'],
+                    tx['mintTxid'],
+                    tx['mintIndex'])
+            for tx in r.json()
+        ]
+
+    @classmethod
+    def get_unspent_btc(cls, address):
+        r = requests.get(cls.MAIN_UNSPENT_API_BTC.format(
             address), timeout=DEFAULT_TIMEOUT)
         r.raise_for_status()  # pragma: no cover
         return [
@@ -179,6 +201,13 @@ class BitcoreAPI(InsightAPI):
         r.raise_for_status()  # pragma: no cover
         return r.json()['balance']
 
+    @classmethod
+    def get_balance_btc(cls, address):
+        r = requests.get(cls.MAIN_BALANCE_API_BTC.format(
+            address), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        return r.json()['balance']
+
 class NetworkAPI:
     IGNORED_ERRORS = (
         requests.exceptions.RequestException,
@@ -198,10 +227,12 @@ class NetworkAPI:
     # Mainnet
     GET_BALANCE_MAIN = [BitcoinDotComAPI.get_balance,
                         BitcoreAPI.get_balance]
+    GET_BALANCE_MAIN_BTC = [BitcoreAPI.get_balance_btc]
     GET_TRANSACTIONS_MAIN = [BitcoinDotComAPI.get_transactions,
                              BitcoreAPI.get_transactions]
     GET_UNSPENT_MAIN = [BitcoinDotComAPI.get_unspent,
                         BitcoreAPI.get_unspent]
+    GET_UNSPENT_MAIN_BTC = [BitcoreAPI.get_unspent_btc]
     BROADCAST_TX_MAIN = [BitcoinDotComAPI.broadcast_tx,
                          BitcoreAPI.broadcast_tx]
     GET_TX_MAIN = [BitcoinDotComAPI.get_transaction]
@@ -226,6 +257,26 @@ class NetworkAPI:
                 pass
 
         raise ConnectionError('All APIs are unreachable.')
+
+    @classmethod
+    def get_balance_btc(cls, address):
+        """Gets the balance of an address in satoshi.
+
+        :param address: The address in question.
+        :type address: ``str``
+        :raises ConnectionError: If all API services fail.
+        :rtype: ``int``
+        """
+
+        for api_call in cls.GET_BALANCE_MAIN_BTC:
+            try:
+                return api_call(address)
+            except cls.IGNORED_ERRORS:
+                pass
+
+        raise ConnectionError('All APIs are unreachable.')
+
+
 
     @classmethod
     def get_transactions(cls, address):
@@ -300,6 +351,25 @@ class NetworkAPI:
                 pass
 
         raise ConnectionError('All APIs are unreachable.')
+
+    @classmethod
+    def get_unspent_btc(cls, address):
+        """Gets all unspent transaction outputs belonging to an address.
+
+        :param address: The address in question.
+        :type address: ``str``
+        :raises ConnectionError: If all API services fail.
+        :rtype: ``list`` of :class:`~bitcash.network.meta.Unspent`
+        """
+
+        for api_call in cls.GET_UNSPENT_MAIN_BTC:
+            try:
+                return api_call(address)
+            except cls.IGNORED_ERRORS:
+                pass
+
+        raise ConnectionError('All APIs are unreachable.')
+
 
     @classmethod
     def get_raw_transaction(cls, txid):

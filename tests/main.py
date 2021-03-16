@@ -1,5 +1,6 @@
 from bitcoinpython import Key
 from cashaddress import convert
+from bitcoinpython import get_balance, get_balance_btc
 
 
 k = Key('L3KavUvcjBj7pzKBMS4doKyJpBY4nJJbm31VnVwhcC26mTvCP3Lh')
@@ -10,13 +11,16 @@ print(k.address)
 # print(k.public_point)
 address = convert.to_legacy_address(k.address)
 print(address)
-# bchaddr = convert.to_cash_address(address)
+bchaddr = convert.to_cash_address('13A8QNwEeuYyvcPSJwR4F5xDr6RUryLVfw')
 # print(bchaddr)
 # print(k.to_wif())
 print(k.get_balance(currency='satoshi'))
 # print(k.unspents)
 # print(k.transactions)
+print(k.get_transactions())
 print(k.get_unspents())
-# tx = k.create_transaction([('bitcoincash:qqz4lzmnqwq3ducsqp2mgxaptqv2v6gcyvdxxlz95j', 0.0001, 'bch')])
+txid = k.send([('13A8QNwEeuYyvcPSJwR4F5xDr6RUryLVfw', 0.01001, 'bch')],fee=452)
+print(txid)
 
-# print(tx)
+print(get_balance('qz7xc0vl85nck65ffrsx5wvewjznp9lflgktxc5878', currency='bch'))
+print(get_balance_btc('bc1q5j8j9y55mc05ws84smk36ndau4ptj9yj72eldz', currency='BTC'))
