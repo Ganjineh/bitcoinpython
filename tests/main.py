@@ -1,4 +1,4 @@
-from bitcoinpython import Key, PrivateKeyTestnet
+from bitcoinpython import Key
 from cashaddress import convert
 
 
