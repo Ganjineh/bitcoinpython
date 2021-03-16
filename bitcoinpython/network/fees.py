@@ -19,7 +19,7 @@ FEE_SPEED_SLOW = 'slow'
 
 # FIXME: Not sure if this is better, bools are better, or creating its
 # own type is better.
-def get_fee(speed=FEE_SPEED_MEDIUM):
+def get_fee(speed=DEFAULT_FEE_FAST):
     """Gets the recommended satoshi per byte fee.
 
     :param speed: One of: 'fast', 'medium', 'slow'.
