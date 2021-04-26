@@ -195,6 +195,13 @@ class BitcoreAPI(InsightAPI):
         return [tx['mintTxid'] for tx in r.json()]
 
     @classmethod
+    def get_transactions_btc(cls, address):
+        r = requests.get(cls.MAIN_ADDRESS_API_BTC.format(
+            address), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        return  r.json()
+
+    @classmethod
     def get_balance(cls, address):
         r = requests.get(cls.MAIN_BALANCE_API.format(
             address), timeout=DEFAULT_TIMEOUT)
@@ -207,6 +214,7 @@ class BitcoreAPI(InsightAPI):
             address), timeout=DEFAULT_TIMEOUT)
         r.raise_for_status()  # pragma: no cover
         return r.json()['balance']
+
 
 class NetworkAPI:
     IGNORED_ERRORS = (
@@ -230,6 +238,7 @@ class NetworkAPI:
     GET_BALANCE_MAIN_BTC = [BitcoreAPI.get_balance_btc]
     GET_TRANSACTIONS_MAIN = [BitcoinDotComAPI.get_transactions,
                              BitcoreAPI.get_transactions]
+    GET_TRANSACTIONS_MAIN_BTC = [BitcoreAPI.get_transactions_btc]
     GET_UNSPENT_MAIN = [BitcoinDotComAPI.get_unspent,
                         BitcoreAPI.get_unspent]
     GET_UNSPENT_MAIN_BTC = [BitcoreAPI.get_unspent_btc]
@@ -276,8 +285,6 @@ class NetworkAPI:
 
         raise ConnectionError('All APIs are unreachable.')
 
-
-
     @classmethod
     def get_transactions(cls, address):
         """Gets the ID of all transactions related to an address.
@@ -289,6 +296,24 @@ class NetworkAPI:
         """
 
         for api_call in cls.GET_TRANSACTIONS_MAIN:
+            try:
+                return api_call(address)
+            except cls.IGNORED_ERRORS:
+                pass
+
+        raise ConnectionError('All APIs are unreachable.')
+    
+    @classmethod    
+    def get_transactions_btc(cls, address):
+        """Gets the ID of all transactions related to an address.
+
+        :param address: The address in question.
+        :type address: ``str``
+        :raises ConnectionError: If all API services fail.
+        :rtype: ``list`` of ``str``
+        """
+
+        for api_call in cls.GET_TRANSACTIONS_MAIN_BTC:
             try:
                 return api_call(address)
             except cls.IGNORED_ERRORS:
@@ -369,7 +394,6 @@ class NetworkAPI:
                 pass
 
         raise ConnectionError('All APIs are unreachable.')
-
 
     @classmethod
     def get_raw_transaction(cls, txid):

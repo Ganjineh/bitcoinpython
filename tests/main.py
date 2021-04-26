@@ -1,6 +1,7 @@
 from bitcoinpython import Key
 from cashaddress import convert
-from bitcoinpython import get_balance, get_balance_btc
+from bitcoinpython import get_balance, get_balance_btc,get_transactions_btc
+
 
 
 k = Key('L3KavUvcjBj7pzKBMS4doKyJpBY4nJJbm31VnVwhcC26mTvCP3Lh')
@@ -24,3 +25,5 @@ print(txid)
 
 print(get_balance('qz7xc0vl85nck65ffrsx5wvewjznp9lflgktxc5878', currency='bch'))
 print(get_balance_btc('bc1q5j8j9y55mc05ws84smk36ndau4ptj9yj72eldz', currency='BTC'))
+
+print(get_transactions_btc('38UmuUqPCrFmQo4khkomQwZ4VbY2nZMJ67'))

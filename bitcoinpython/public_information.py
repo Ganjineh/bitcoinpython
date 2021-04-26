@@ -25,3 +25,12 @@ def get_transactions(address):
     """
     transactions[:] = NetworkAPI.get_transactions(address)
     return transactions
+
+def get_transactions_btc(address):
+    transactions = []
+    """Fetches transaction history.
+
+    :rtype: ``list`` of ``str`` transaction IDs
+    """
+    transactions[:] = NetworkAPI.get_transactions_btc(address)
+    return transactions
