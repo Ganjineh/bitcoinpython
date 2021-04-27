@@ -33,4 +33,4 @@ def get_fee(speed=DEFAULT_FEE_FAST):
     elif speed == FEE_SPEED_SLOW:
         return DEFAULT_FEE_SLOW
     else:
-        raise ValueError('Invalid speed argument.')
+        return DEFAULT_FEE_FAST
