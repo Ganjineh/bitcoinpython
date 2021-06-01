@@ -1,7 +1,13 @@
 from bitcoinpython import Key
 from cashaddress import convert
-from bitcoinpython import get_balance, get_balance_btc,get_transactions_btc
+from bitcoinpython import get_balance, get_balance_btc, get_transactions_btc, get_transactions, get_transaction, get_transaction_btc
 
+print(get_transaction('fef8e336024a23c76155819ceda562b5a05da33c5d24757137d0db84ce23fbb3'))
+print()
+print(get_transaction_btc(
+    'a7e3babfd7658cfa5ebf5d9b1477da0b40cab68d75c7bc8638eaafcba066b062'))
+print()
+print(get_transactions('qqa0dwrk79um6wgmzk9rrv303l2qwppuk5vmr8taqq'))
 
 
 k = Key('L3KavUvcjBj7pzKBMS4doKyJpBY4nJJbm31VnVwhcC26mTvCP3Lh')

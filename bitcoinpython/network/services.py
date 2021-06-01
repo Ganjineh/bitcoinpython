@@ -68,40 +68,22 @@ class BitcoinDotComAPI():
         r = requests.get(cls.MAIN_ADDRESS_API.format(address),
                          timeout=DEFAULT_TIMEOUT)
         r.raise_for_status()  # pragma: no cover
-        return r.json()['transactions']
+        tnxs = []
+        n = 0
+        for i in r.json()['transactions']:
+            tnxs.append(cls.get_transaction(i))
+            n += 1
+            if n == 30:
+                break
+        return tnxs
 
     @classmethod
     def get_transaction(cls, txid):
         r = requests.get(cls.MAIN_TX_API.format(txid),
                          timeout=DEFAULT_TIMEOUT)
         r.raise_for_status()  # pragma: no cover
-        response = r.json(parse_float=Decimal)
-
-        tx = Transaction(response['txid'], response['blockheight'],
-                         (Decimal(response['valueIn']) *
-                          BCH_TO_SAT_MULTIPLIER).normalize(),
-                         (Decimal(response['valueOut']) *
-                          BCH_TO_SAT_MULTIPLIER).normalize(),
-                         (Decimal(response['fees']) * BCH_TO_SAT_MULTIPLIER).normalize())
-
-        for txin in response['vin']:
-            part = TxPart(txin['cashAddress'],
-                          txin['value'],
-                          txin['scriptSig']['asm'])
-            tx.add_input(part)
-
-        for txout in response['vout']:
-            addr = None
-            if 'cashAddrs' in txout['scriptPubKey'] and txout['scriptPubKey']['cashAddrs'] is not None:
-                addr = txout['scriptPubKey']['cashAddrs'][0]
-
-            part = TxPart(addr,
-                          (Decimal(txout['value']) *
-                           BCH_TO_SAT_MULTIPLIER).normalize(),
-                          txout['scriptPubKey']['asm'])
-            tx.add_output(part)
-
-        return tx
+        response = r.json()
+        return response
 
     @classmethod
     def get_tx_amount(cls, txid, txindex):
@@ -199,7 +181,14 @@ class BitcoreAPI(InsightAPI):
         r = requests.get(cls.MAIN_ADDRESS_API_BTC.format(
             address), timeout=DEFAULT_TIMEOUT)
         r.raise_for_status()  # pragma: no cover
-        return  r.json()
+        return r.json()
+
+    @classmethod
+    def get_transaction_btc(cls, txid):
+        r = requests.get(cls.MAIN_TX_API_BTC.format(
+            txid), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        return r.json()
 
     @classmethod
     def get_balance(cls, address):
@@ -239,6 +228,8 @@ class NetworkAPI:
     GET_TRANSACTIONS_MAIN = [BitcoinDotComAPI.get_transactions,
                              BitcoreAPI.get_transactions]
     GET_TRANSACTIONS_MAIN_BTC = [BitcoreAPI.get_transactions_btc]
+    GET_TRANSACTION_MAIN_BTC = [BitcoreAPI.get_transaction_btc]
+
     GET_UNSPENT_MAIN = [BitcoinDotComAPI.get_unspent,
                         BitcoreAPI.get_unspent]
     GET_UNSPENT_MAIN_BTC = [BitcoreAPI.get_unspent_btc]
@@ -302,8 +293,8 @@ class NetworkAPI:
                 pass
 
         raise ConnectionError('All APIs are unreachable.')
-    
-    @classmethod    
+
+    @classmethod
     def get_transactions_btc(cls, address):
         """Gets the ID of all transactions related to an address.
 
@@ -332,6 +323,23 @@ class NetworkAPI:
         """
 
         for api_call in cls.GET_TX_MAIN:
+            try:
+                return api_call(txid)
+            except cls.IGNORED_ERRORS:
+                pass
+
+        raise ConnectionError('All APIs are unreachable.')
+    @classmethod
+    def get_transaction_btc(cls, txid):
+        """Gets the full transaction details.
+
+        :param txid: The transaction id in question.
+        :type txid: ``str``
+        :raises ConnectionError: If all API services fail.
+        :rtype: ``Transaction``
+        """
+
+        for api_call in cls.GET_TRANSACTION_MAIN_BTC:
             try:
                 return api_call(txid)
             except cls.IGNORED_ERRORS:
