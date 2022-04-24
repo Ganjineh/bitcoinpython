@@ -121,6 +121,84 @@ class BitcoinDotComAPI():
         return True if r.status_code == 200 else False
 
 
+class FullstackDotCash():
+    """ api.fullstack.cash """
+    MAIN_ENDPOINT = 'https://api.fullstack.cash/v5/'
+    MAIN_ADDRESS_API = MAIN_ENDPOINT + 'address/details/{}'
+    MAIN_UNSPENT_API = MAIN_ENDPOINT + 'address/utxo/{}'
+    MAIN_TX_PUSH_API = MAIN_ENDPOINT + 'rawtransactions/sendRawTransaction/{}'
+    MAIN_TX_API = MAIN_ENDPOINT + 'transaction/details/{}'
+    MAIN_TX_AMOUNT_API = MAIN_TX_API
+    MAIN_RAW_API = MAIN_ENDPOINT + 'transaction/details/{}'
+    TX_PUSH_PARAM = 'rawtx'
+
+    @classmethod
+    def get_balance(cls, address):
+        r = requests.get(cls.MAIN_ADDRESS_API.format(address),
+                         timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        data = r.json()
+        balance = data['balanceSat'] + data['unconfirmedBalanceSat']
+        return balance
+
+    @classmethod
+    def get_transactions(cls, address):
+        r = requests.get(cls.MAIN_ADDRESS_API.format(address),
+                         timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        tnxs = []
+        n = 0
+        for i in r.json()['transactions']:
+            tnxs.append(cls.get_transaction(i))
+            n += 1
+            if n == 30:
+                break
+        return tnxs
+
+    @classmethod
+    def get_transaction(cls, txid):
+        r = requests.get(cls.MAIN_TX_API.format(txid),
+                         timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        response = r.json()
+        return response
+
+    @classmethod
+    def get_tx_amount(cls, txid, txindex):
+        r = requests.get(cls.MAIN_TX_AMOUNT_API.format(
+            txid), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        response = r.json(parse_float=Decimal)
+        return (Decimal(response['vout'][txindex]['value']) * BCH_TO_SAT_MULTIPLIER).normalize()
+
+    @classmethod
+    def get_unspent(cls, address):
+        r = requests.get(cls.MAIN_UNSPENT_API.format(address),
+                         timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        return [
+            Unspent(currency_to_satoshi(tx['amount'], 'bch'),
+                    tx['confirmations'],
+                    r.json()['scriptPubKey'],
+                    tx['txid'],
+                    tx['vout'])
+            for tx in r.json()['utxos']
+        ]
+
+    @classmethod
+    def get_raw_transaction(cls, txid):
+        r = requests.get(cls.MAIN_RAW_API.format(
+            txid), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()  # pragma: no cover
+        response = r.json(parse_float=Decimal)
+        return response
+
+    @classmethod
+    def broadcast_tx(cls, tx_hex):  # pragma: no cover
+        r = requests.get(cls.MAIN_TX_PUSH_API.format(tx_hex))
+        return True if r.status_code == 200 else False
+
+
 class BitcoreAPI(InsightAPI):
     """ Insight API v8 """
     MAIN_ENDPOINT = 'https://api.bitcore.io/api/BCH/mainnet/'
@@ -222,23 +300,30 @@ class NetworkAPI:
     )
 
     # Mainnet
-    GET_BALANCE_MAIN = [BitcoinDotComAPI.get_balance,
+    GET_BALANCE_MAIN = [FullstackDotCash.get_balance,
+                        BitcoinDotComAPI.get_balance,
                         BitcoreAPI.get_balance]
     GET_BALANCE_MAIN_BTC = [BitcoreAPI.get_balance_btc]
-    GET_TRANSACTIONS_MAIN = [BitcoinDotComAPI.get_transactions,
+    GET_TRANSACTIONS_MAIN = [FullstackDotCash.get_transactions,
+                             BitcoinDotComAPI.get_transactions,
                              BitcoreAPI.get_transactions]
     GET_TRANSACTIONS_MAIN_BTC = [BitcoreAPI.get_transactions_btc]
     GET_TRANSACTION_MAIN_BTC = [BitcoreAPI.get_transaction_btc]
 
-    GET_UNSPENT_MAIN = [BitcoinDotComAPI.get_unspent,
+    GET_UNSPENT_MAIN = [FullstackDotCash.get_unspent,
+                        BitcoinDotComAPI.get_unspent,
                         BitcoreAPI.get_unspent]
     GET_UNSPENT_MAIN_BTC = [BitcoreAPI.get_unspent_btc]
-    BROADCAST_TX_MAIN = [BitcoinDotComAPI.broadcast_tx,
+    BROADCAST_TX_MAIN = [FullstackDotCash.broadcast_tx,
+                         BitcoinDotComAPI.broadcast_tx,
                          BitcoreAPI.broadcast_tx]
-    GET_TX_MAIN = [BitcoinDotComAPI.get_transaction]
-    GET_TX_AMOUNT_MAIN = [BitcoinDotComAPI.get_tx_amount,
+    GET_TX_MAIN = [FullstackDotCash.get_transaction,
+                   BitcoinDotComAPI.get_transaction]
+    GET_TX_AMOUNT_MAIN = [FullstackDotCash.get_tx_amount,
+                          BitcoinDotComAPI.get_tx_amount,
                           BitcoreAPI.get_tx_amount]
-    GET_RAW_TX_MAIN = [BitcoinDotComAPI.get_raw_transaction]
+    GET_RAW_TX_MAIN = [FullstackDotCash.get_raw_transaction,
+                       BitcoinDotComAPI.get_raw_transaction]
 
     @classmethod
     def get_balance(cls, address):
