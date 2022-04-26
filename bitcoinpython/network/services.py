@@ -98,14 +98,17 @@ class BitcoinDotComAPI():
         r = requests.get(cls.MAIN_UNSPENT_API.format(address),
                          timeout=DEFAULT_TIMEOUT)
         r.raise_for_status()  # pragma: no cover
-        return [
-            Unspent(currency_to_satoshi(tx['amount'], 'bch'),
+        outputs = []
+        last_txid = ''
+        for tx in r.json()['utxos']:
+            if not tx['txid'] == last_txid:
+                last_txid = tx['txid']
+                outputs.append(Unspent(currency_to_satoshi(tx['amount'], 'bch'),
                     tx['confirmations'],
                     r.json()['scriptPubKey'],
                     tx['txid'],
-                    tx['vout'])
-            for tx in r.json()['utxos']
-        ]
+                    tx['vout']))
+        return outputs
 
     @classmethod
     def get_raw_transaction(cls, txid):
@@ -125,7 +128,7 @@ class FullstackDotCash():
     """ api.fullstack.cash """
     MAIN_ENDPOINT = 'https://api.fullstack.cash/v5/'
     MAIN_ADDRESS_API = MAIN_ENDPOINT + 'address/details/{}'
-    MAIN_UNSPENT_API = MAIN_ENDPOINT + 'address/utxo/{}'
+    MAIN_UNSPENT_API = MAIN_ENDPOINT + 'electrumx/utxos/{}'
     MAIN_TX_PUSH_API = MAIN_ENDPOINT + 'rawtransactions/sendRawTransaction/{}'
     MAIN_TX_API = MAIN_ENDPOINT + 'transaction/details/{}'
     MAIN_TX_AMOUNT_API = MAIN_TX_API
@@ -177,11 +180,11 @@ class FullstackDotCash():
                          timeout=DEFAULT_TIMEOUT)
         r.raise_for_status()  # pragma: no cover
         return [
-            Unspent(currency_to_satoshi(tx['amount'], 'bch'),
-                    tx['confirmations'],
-                    r.json()['scriptPubKey'],
-                    tx['txid'],
-                    tx['vout'])
+            Unspent(tx['value'],
+                    {},
+                    {},
+                    tx['tx_hash'],
+                    tx['tx_pos'])
             for tx in r.json()['utxos']
         ]
 
@@ -300,30 +303,22 @@ class NetworkAPI:
     )
 
     # Mainnet
-    GET_BALANCE_MAIN = [FullstackDotCash.get_balance,
-                        BitcoinDotComAPI.get_balance,
+    GET_BALANCE_MAIN = [BitcoinDotComAPI.get_balance,
                         BitcoreAPI.get_balance]
     GET_BALANCE_MAIN_BTC = [BitcoreAPI.get_balance_btc]
-    GET_TRANSACTIONS_MAIN = [FullstackDotCash.get_transactions,
-                             BitcoinDotComAPI.get_transactions,
+    GET_TRANSACTIONS_MAIN = [BitcoinDotComAPI.get_transactions,
                              BitcoreAPI.get_transactions]
     GET_TRANSACTIONS_MAIN_BTC = [BitcoreAPI.get_transactions_btc]
     GET_TRANSACTION_MAIN_BTC = [BitcoreAPI.get_transaction_btc]
 
-    GET_UNSPENT_MAIN = [FullstackDotCash.get_unspent,
-                        BitcoinDotComAPI.get_unspent,
-                        BitcoreAPI.get_unspent]
+    GET_UNSPENT_MAIN = [BitcoinDotComAPI.get_unspent]
     GET_UNSPENT_MAIN_BTC = [BitcoreAPI.get_unspent_btc]
-    BROADCAST_TX_MAIN = [FullstackDotCash.broadcast_tx,
-                         BitcoinDotComAPI.broadcast_tx,
+    BROADCAST_TX_MAIN = [BitcoinDotComAPI.broadcast_tx,
                          BitcoreAPI.broadcast_tx]
-    GET_TX_MAIN = [FullstackDotCash.get_transaction,
-                   BitcoinDotComAPI.get_transaction]
-    GET_TX_AMOUNT_MAIN = [FullstackDotCash.get_tx_amount,
-                          BitcoinDotComAPI.get_tx_amount,
+    GET_TX_MAIN = [BitcoinDotComAPI.get_transaction]
+    GET_TX_AMOUNT_MAIN = [BitcoinDotComAPI.get_tx_amount,
                           BitcoreAPI.get_tx_amount]
-    GET_RAW_TX_MAIN = [FullstackDotCash.get_raw_transaction,
-                       BitcoinDotComAPI.get_raw_transaction]
+    GET_RAW_TX_MAIN = [BitcoinDotComAPI.get_raw_transaction]
 
     @classmethod
     def get_balance(cls, address):
