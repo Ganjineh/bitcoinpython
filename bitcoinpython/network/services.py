@@ -311,7 +311,8 @@ class NetworkAPI:
     GET_TRANSACTIONS_MAIN_BTC = [BitcoreAPI.get_transactions_btc]
     GET_TRANSACTION_MAIN_BTC = [BitcoreAPI.get_transaction_btc]
 
-    GET_UNSPENT_MAIN = [BitcoinDotComAPI.get_unspent]
+    GET_UNSPENT_MAIN = [BitcoinDotComAPI.get_unspent,
+                        BitcoreAPI.get_unspent]
     GET_UNSPENT_MAIN_BTC = [BitcoreAPI.get_unspent_btc]
     BROADCAST_TX_MAIN = [FullstackDotCash.broadcast_tx, 
                         BitcoinDotComAPI.broadcast_tx,
