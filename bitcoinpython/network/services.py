@@ -207,7 +207,7 @@ class BitcoreAPI(InsightAPI):
     MAIN_ENDPOINT = 'https://api.bitcore.io/api/BCH/mainnet/'
     MAIN_ADDRESS_API = MAIN_ENDPOINT + 'address/{}'
     MAIN_BALANCE_API = MAIN_ADDRESS_API + '/balance'
-    MAIN_UNSPENT_API = MAIN_ADDRESS_API + '/?unspent=true'
+    MAIN_UNSPENT_API = MAIN_ADDRESS_API + '/?unspent=true&limit=1000'
     MAIN_TX_PUSH_API = MAIN_ENDPOINT + 'tx/send'
     MAIN_TX_API = MAIN_ENDPOINT + 'tx/{}'
     MAIN_TX_AMOUNT_API = MAIN_TX_API
@@ -215,7 +215,7 @@ class BitcoreAPI(InsightAPI):
     MAIN_ENDPOINT_BTC = 'https://api.bitcore.io/api/BTC/mainnet/'
     MAIN_ADDRESS_API_BTC = MAIN_ENDPOINT_BTC + 'address/{}'
     MAIN_BALANCE_API_BTC = MAIN_ADDRESS_API_BTC + '/balance'
-    MAIN_UNSPENT_API_BTC = MAIN_ADDRESS_API_BTC + '/?unspent=true'
+    MAIN_UNSPENT_API_BTC = MAIN_ADDRESS_API_BTC + '/?unspent=true&limit=1000'
     MAIN_TX_PUSH_API_BTC = MAIN_ENDPOINT_BTC + 'tx/send'
     MAIN_TX_API_BTC = MAIN_ENDPOINT_BTC + 'tx/{}'
     MAIN_TX_AMOUNT_API_BTC = MAIN_TX_API_BTC
