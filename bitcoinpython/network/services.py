@@ -127,36 +127,16 @@ class BitcoinDotComAPI():
 class FullstackDotCash():
     """ api.fullstack.cash """
     MAIN_ENDPOINT = 'https://api.fullstack.cash/v5/'
-    MAIN_ADDRESS_API = MAIN_ENDPOINT + 'address/details/{}'
-    MAIN_UNSPENT_API = MAIN_ENDPOINT + 'electrumx/utxos/{}'
     MAIN_TX_PUSH_API = MAIN_ENDPOINT + 'rawtransactions/sendRawTransaction/{}'
-    MAIN_TX_API = MAIN_ENDPOINT + 'transaction/details/{}'
-    MAIN_TX_AMOUNT_API = MAIN_TX_API
-    MAIN_RAW_API = MAIN_ENDPOINT + 'transaction/details/{}'
-    TX_PUSH_PARAM = 'rawtx'
+    MAIN_TX_API = MAIN_ENDPOINT + 'electrumx/tx/data/{}'
 
     @classmethod
     def get_balance(cls, address):
-        r = requests.get(cls.MAIN_ADDRESS_API.format(address),
-                         timeout=DEFAULT_TIMEOUT)
-        r.raise_for_status()  # pragma: no cover
-        data = r.json()
-        balance = data['balanceSat'] + data['unconfirmedBalanceSat']
-        return balance
+        pass
 
     @classmethod
     def get_transactions(cls, address):
-        r = requests.get(cls.MAIN_ADDRESS_API.format(address),
-                         timeout=DEFAULT_TIMEOUT)
-        r.raise_for_status()  # pragma: no cover
-        tnxs = []
-        n = 0
-        for i in r.json()['transactions']:
-            tnxs.append(cls.get_transaction(i))
-            n += 1
-            if n == 30:
-                break
-        return tnxs
+        pass
 
     @classmethod
     def get_transaction(cls, txid):
@@ -168,33 +148,15 @@ class FullstackDotCash():
 
     @classmethod
     def get_tx_amount(cls, txid, txindex):
-        r = requests.get(cls.MAIN_TX_AMOUNT_API.format(
-            txid), timeout=DEFAULT_TIMEOUT)
-        r.raise_for_status()  # pragma: no cover
-        response = r.json(parse_float=Decimal)
-        return (Decimal(response['vout'][txindex]['value']) * BCH_TO_SAT_MULTIPLIER).normalize()
+        pass
 
     @classmethod
     def get_unspent(cls, address):
-        r = requests.get(cls.MAIN_UNSPENT_API.format(address),
-                         timeout=DEFAULT_TIMEOUT)
-        r.raise_for_status()  # pragma: no cover
-        return [
-            Unspent(tx['value'],
-                    {},
-                    {},
-                    tx['tx_hash'],
-                    tx['tx_pos'])
-            for tx in r.json()['utxos']
-        ]
+        pass
 
     @classmethod
     def get_raw_transaction(cls, txid):
-        r = requests.get(cls.MAIN_RAW_API.format(
-            txid), timeout=DEFAULT_TIMEOUT)
-        r.raise_for_status()  # pragma: no cover
-        response = r.json(parse_float=Decimal)
-        return response
+        pass
 
     @classmethod
     def broadcast_tx(cls, tx_hex):  # pragma: no cover
@@ -317,7 +279,8 @@ class NetworkAPI:
     BROADCAST_TX_MAIN = [FullstackDotCash.broadcast_tx, 
                         BitcoinDotComAPI.broadcast_tx,
                         BitcoreAPI.broadcast_tx]
-    GET_TX_MAIN = [BitcoinDotComAPI.get_transaction]
+    GET_TX_MAIN = [FullstackDotCash.get_transaction,
+                    BitcoinDotComAPI.get_transaction]
     GET_TX_AMOUNT_MAIN = [BitcoinDotComAPI.get_tx_amount,
                           BitcoreAPI.get_tx_amount]
     GET_RAW_TX_MAIN = [BitcoinDotComAPI.get_raw_transaction]
