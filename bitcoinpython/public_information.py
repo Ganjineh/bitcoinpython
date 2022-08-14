@@ -45,3 +45,8 @@ def get_transactions_btc(address):
     """
     transactions[:] = NetworkAPI.get_transactions_btc(address)
     return transactions
+
+def get_block_number_btc(x_api_key=None):
+
+    block_number = NetworkAPI.get_block_number_btc(x_api_key)
+    return block_number

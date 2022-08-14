@@ -254,7 +254,17 @@ class TatumApi(InsightAPI):
     """ for BTC  """
     MAIN_ENDPOINT_BTC = 'https://api-eu1.tatum.io/v3/bitcoin/'
     MAIN_TX_API_BTC = MAIN_ENDPOINT_BTC + 'transaction/{}'
+    MAIN_BLOCK_INFO_BTC = MAIN_ENDPOINT_BTC + 'info'
 
+    @classmethod
+    def get_block_number_btc(cls, x_api_key=None):
+        headers = {
+            "x-api-key": x_api_key
+        }
+        r = requests.get(cls.MAIN_BLOCK_INFO_BTC, timeout=DEFAULT_TIMEOUT, headers=headers)
+        r.raise_for_status()
+        return int(r.json()['blocks'])
+        
     @classmethod
     def get_unspent(cls, address):
         pass
@@ -276,7 +286,7 @@ class TatumApi(InsightAPI):
         headers = {
             "x-api-key": x_api_key
         }
-        r = requests.get(cls.MAIN_TX_API_BTC.format(txid, x_api_key), timeout=DEFAULT_TIMEOUT, headers=headers)
+        r = requests.get(cls.MAIN_TX_API_BTC.format(txid), timeout=DEFAULT_TIMEOUT, headers=headers)
         r.raise_for_status()
         return r.json()
 
@@ -313,6 +323,7 @@ class NetworkAPI:
                              BitcoreAPI.get_transactions]
     GET_TRANSACTIONS_MAIN_BTC = [BitcoreAPI.get_transactions_btc]
     GET_TRANSACTION_MAIN_BTC = [TatumApi.get_transaction_btc]
+    GET_BLOCK_NUMBER_BTC = [TatumApi.get_block_number_btc]
 
     GET_UNSPENT_MAIN = [BitcoinDotComAPI.get_unspent,
                         BitcoreAPI.get_unspent]
@@ -529,5 +540,24 @@ class NetworkAPI:
         if success is False:
             raise ConnectionError('Transaction broadcast failed, or '
                                   'Unspents were already used.')
+
+        raise ConnectionError('All APIs are unreachable.')
+
+
+    @classmethod
+    def get_block_number_btc(cls, x_api_key=None):
+        """Gets the ID of all transactions related to an address.
+
+        :param address: The address in question.
+        :type address: ``str``
+        :raises ConnectionError: If all API services fail.
+        :rtype: ``list`` of ``str``
+        """
+
+        for api_call in cls.GET_BLOCK_NUMBER_BTC:
+            try:
+                return api_call(x_api_key)
+            except cls.IGNORED_ERRORS:
+                pass
 
         raise ConnectionError('All APIs are unreachable.')
