@@ -32,8 +32,8 @@ def get_transaction(txid):
     return transaction
 
 
-def get_transaction_btc(txid):
-    transaction = NetworkAPI.get_transaction_btc(txid)
+def get_transaction_btc(txid, x_api_key=None):
+    transaction = NetworkAPI.get_transaction_btc(txid, x_api_key)
     return transaction
 
 

@@ -248,6 +248,47 @@ class BitcoreAPI(InsightAPI):
         return r.json()['balance']
 
 
+class TatumApi(InsightAPI):
+    """ Insight API v8 """
+    MAIN_ENDPOINT = 'https://api-eu1.tatum.io/v3/bcash/'
+    """ for BTC  """
+    MAIN_ENDPOINT_BTC = 'https://api-eu1.tatum.io/v3/bitcoin/'
+    MAIN_TX_API_BTC = MAIN_ENDPOINT_BTC + 'transaction/{}'
+
+    @classmethod
+    def get_unspent(cls, address):
+        pass
+
+    @classmethod
+    def get_unspent_btc(cls, address):
+        pass
+
+    @classmethod
+    def get_transactions(cls, address):
+        pass
+
+    @classmethod
+    def get_transactions_btc(cls, address):
+        pass
+
+    @classmethod
+    def get_transaction_btc(cls, txid, x_api_key=None):
+        headers = {
+            "x-api-key": x_api_key
+        }
+        r = requests.get(cls.MAIN_TX_API_BTC.format(txid, x_api_key), timeout=DEFAULT_TIMEOUT, headers=headers)
+        r.raise_for_status()
+        return r.json()
+
+    @classmethod
+    def get_balance(cls, address):
+        pass
+
+    @classmethod
+    def get_balance_btc(cls, address):
+        pass
+
+
 class NetworkAPI:
     IGNORED_ERRORS = (
         requests.exceptions.RequestException,
@@ -271,7 +312,7 @@ class NetworkAPI:
     GET_TRANSACTIONS_MAIN = [BitcoinDotComAPI.get_transactions,
                              BitcoreAPI.get_transactions]
     GET_TRANSACTIONS_MAIN_BTC = [BitcoreAPI.get_transactions_btc]
-    GET_TRANSACTION_MAIN_BTC = [BitcoreAPI.get_transaction_btc]
+    GET_TRANSACTION_MAIN_BTC = [TatumApi.get_transaction_btc]
 
     GET_UNSPENT_MAIN = [BitcoinDotComAPI.get_unspent,
                         BitcoreAPI.get_unspent]
@@ -375,7 +416,7 @@ class NetworkAPI:
 
         raise ConnectionError('All APIs are unreachable.')
     @classmethod
-    def get_transaction_btc(cls, txid):
+    def get_transaction_btc(cls, txid, x_api_key=None):
         """Gets the full transaction details.
 
         :param txid: The transaction id in question.
@@ -386,7 +427,7 @@ class NetworkAPI:
 
         for api_call in cls.GET_TRANSACTION_MAIN_BTC:
             try:
-                return api_call(txid)
+                return api_call(txid, x_api_key)
             except cls.IGNORED_ERRORS:
                 pass
 
