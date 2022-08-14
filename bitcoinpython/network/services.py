@@ -129,20 +129,25 @@ class FullstackDotCash():
     MAIN_ENDPOINT = 'https://api.fullstack.cash/v5/'
     MAIN_TX_PUSH_API = MAIN_ENDPOINT + 'rawtransactions/sendRawTransaction/{}'
     MAIN_TX_API = MAIN_ENDPOINT + 'electrumx/tx/data/{}'
+    MAIN_TXS_API = MAIN_ENDPOINT + 'electrumx/tx/data/'
 
     @classmethod
     def get_balance(cls, address):
         pass
 
     @classmethod
-    def get_transactions(cls, address):
-        pass
+    def get_transactions(cls, txs):
+        payload = {'txids': txs}
+        headers = {"Content-Type": "application/json"}
+        r = requests.post(cls.MAIN_TXS_API, timeout=DEFAULT_TIMEOUT, json=payload, headers=headers)
+        r.raise_for_status()
+        response = r.json()
+        return response
 
     @classmethod
     def get_transaction(cls, txid):
-        r = requests.get(cls.MAIN_TX_API.format(txid),
-                         timeout=DEFAULT_TIMEOUT)
-        r.raise_for_status()  # pragma: no cover
+        r = requests.get(cls.MAIN_TX_API.format(txid), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()
         response = r.json()
         return response
 
@@ -251,6 +256,8 @@ class BitcoreAPI(InsightAPI):
 class TatumApi(InsightAPI):
     """ Insight API v8 """
     MAIN_ENDPOINT = 'https://api-eu1.tatum.io/v3/bcash/'
+    MAIN_TX_API = MAIN_ENDPOINT + 'transaction/{}'
+    MAIN_BLOCK_INFO = MAIN_ENDPOINT + 'info'
     """ for BTC  """
     MAIN_ENDPOINT_BTC = 'https://api-eu1.tatum.io/v3/bitcoin/'
     MAIN_TX_API_BTC = MAIN_ENDPOINT_BTC + 'transaction/{}'
@@ -262,6 +269,15 @@ class TatumApi(InsightAPI):
             "x-api-key": x_api_key
         }
         r = requests.get(cls.MAIN_BLOCK_INFO_BTC, timeout=DEFAULT_TIMEOUT, headers=headers)
+        r.raise_for_status()
+        return int(r.json()['blocks'])
+
+    @classmethod
+    def get_block_number(cls, x_api_key=None):
+        headers = {
+            "x-api-key": x_api_key
+        }
+        r = requests.get(cls.MAIN_BLOCK_INFO, timeout=DEFAULT_TIMEOUT, headers=headers)
         r.raise_for_status()
         return int(r.json()['blocks'])
         
@@ -280,6 +296,15 @@ class TatumApi(InsightAPI):
     @classmethod
     def get_transactions_btc(cls, address):
         pass
+
+    @classmethod
+    def get_transaction(cls, txid, x_api_key=None):
+        headers = {
+            "x-api-key": x_api_key
+        }
+        r = requests.get(cls.MAIN_TX_API.format(txid), timeout=DEFAULT_TIMEOUT, headers=headers)
+        r.raise_for_status()
+        return r.json()
 
     @classmethod
     def get_transaction_btc(cls, txid, x_api_key=None):
@@ -319,8 +344,7 @@ class NetworkAPI:
     GET_BALANCE_MAIN = [BitcoinDotComAPI.get_balance,
                         BitcoreAPI.get_balance]
     GET_BALANCE_MAIN_BTC = [BitcoreAPI.get_balance_btc]
-    GET_TRANSACTIONS_MAIN = [BitcoinDotComAPI.get_transactions,
-                             BitcoreAPI.get_transactions]
+    GET_TRANSACTIONS_MAIN = [FullstackDotCash.get_transactions]
     GET_TRANSACTIONS_MAIN_BTC = [BitcoreAPI.get_transactions_btc]
     GET_TRANSACTION_MAIN_BTC = [TatumApi.get_transaction_btc]
     GET_BLOCK_NUMBER_BTC = [TatumApi.get_block_number_btc]
@@ -331,8 +355,7 @@ class NetworkAPI:
     BROADCAST_TX_MAIN = [FullstackDotCash.broadcast_tx, 
                         BitcoinDotComAPI.broadcast_tx,
                         BitcoreAPI.broadcast_tx]
-    GET_TX_MAIN = [FullstackDotCash.get_transaction,
-                    BitcoinDotComAPI.get_transaction]
+    GET_TX_MAIN = [TatumApi.get_transaction]
     GET_TX_AMOUNT_MAIN = [BitcoinDotComAPI.get_tx_amount,
                           BitcoreAPI.get_tx_amount]
     GET_RAW_TX_MAIN = [BitcoinDotComAPI.get_raw_transaction]
@@ -374,7 +397,7 @@ class NetworkAPI:
         raise ConnectionError('All APIs are unreachable.')
 
     @classmethod
-    def get_transactions(cls, address):
+    def get_transactions(cls, txs):
         """Gets the ID of all transactions related to an address.
 
         :param address: The address in question.
@@ -385,7 +408,7 @@ class NetworkAPI:
 
         for api_call in cls.GET_TRANSACTIONS_MAIN:
             try:
-                return api_call(address)
+                return api_call(txs)
             except cls.IGNORED_ERRORS:
                 pass
 
@@ -410,7 +433,7 @@ class NetworkAPI:
         raise ConnectionError('All APIs are unreachable.')
 
     @classmethod
-    def get_transaction(cls, txid):
+    def get_transaction(cls, txid, x_api_key=None):
         """Gets the full transaction details.
 
         :param txid: The transaction id in question.
@@ -421,7 +444,7 @@ class NetworkAPI:
 
         for api_call in cls.GET_TX_MAIN:
             try:
-                return api_call(txid)
+                return api_call(txid, x_api_key)
             except cls.IGNORED_ERRORS:
                 pass
 
