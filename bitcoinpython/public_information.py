@@ -17,6 +17,17 @@ def get_balance_btc(address, currency='satoshi'):
     return satoshi_to_currency_cached(balance, currency.lower())
 
 
+def _get_unspent(address):
+    unspents = [] 
+    unspents[:] = NetworkAPI.get_unspent(address=address)
+    return unspents
+
+def _get_unspent_btc(address):
+    unspents = [] 
+    unspents[:] = NetworkAPI.get_unspent_btc(address=address)
+    return unspents
+
+
 def get_transactions(txs):
     """Fetches transaction history.
 
