@@ -37,6 +37,15 @@ def get_transactions(txs):
     return transactions
 
 
+def get_transactions_by_address(address, x_api_key=None):
+    """Fetches transaction history.
+
+    :rtype: ``list`` of ``str`` transaction IDs
+    """
+    transactions = NetworkAPI.get_transactions_by_address(address, x_api_key)
+    return transactions
+
+
 def get_transaction(txid, x_api_key=None):
     transaction = NetworkAPI.get_transaction(txid, x_api_key)
     return transaction

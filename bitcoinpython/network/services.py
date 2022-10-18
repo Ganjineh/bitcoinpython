@@ -257,6 +257,7 @@ class TatumApi(InsightAPI):
     """ Insight API v8 """
     MAIN_ENDPOINT = 'https://api-eu1.tatum.io/v3/bcash/'
     MAIN_TX_API = MAIN_ENDPOINT + 'transaction/{}'
+    MAIN_TXS_BY_ADDRESS_API = MAIN_ENDPOINT + 'transaction/address/{}'
     MAIN_BLOCK_INFO = MAIN_ENDPOINT + 'info'
     """ for BTC  """
     MAIN_ENDPOINT_BTC = 'https://api-eu1.tatum.io/v3/bitcoin/'
@@ -290,8 +291,13 @@ class TatumApi(InsightAPI):
         pass
 
     @classmethod
-    def get_transactions(cls, address):
-        pass
+    def get_transactions_by_address(cls, address, x_api_key=None):
+        headers = {
+            "x-api-key": x_api_key
+        }
+        r = requests.get(cls.MAIN_TXS_BY_ADDRESS_API.format(address), timeout=DEFAULT_TIMEOUT, headers=headers)
+        r.raise_for_status()
+        return r.json()
 
     @classmethod
     def get_transactions_btc(cls, address):
@@ -324,6 +330,78 @@ class TatumApi(InsightAPI):
         pass
 
 
+class BlockchairApi(InsightAPI):
+    MAIN_ENDPOINT = 'https://api.blockchair.com/bitcoin-cash/'
+    MAIN_STATS_API = MAIN_ENDPOINT + 'stats'
+    MAIN_ADDRESS_API = MAIN_ENDPOINT + 'dashboards/address/{}'
+    MAIN_TX_PUSH_API = MAIN_ENDPOINT + 'push/transaction'
+    MAIN_TX_API = MAIN_ENDPOINT + 'dashboards/transaction/{}'
+    MAIN_TXS_API = MAIN_ENDPOINT + 'dashboards/transactions/{}'
+    TEST_ENDPOINT = 'https://api.blockchair.com/bitcoin/testnet/'
+    TEST_ADDRESS_API = TEST_ENDPOINT + 'dashboards/address/{}'
+    TEST_TX_PUSH_API = TEST_ENDPOINT + 'push/transaction'
+    TEST_TX_API = TEST_ENDPOINT + 'raw/transaction/{}'
+    TX_PUSH_PARAM = 'data'
+
+    @classmethod
+    def get_block_number_btc(cls, x_api_key=None):
+        pass
+
+    @classmethod
+    def get_block_number(cls, x_api_key=None):
+        r = requests.get(cls.MAIN_STATS_API, timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()
+        return r.json()['blocks']
+        
+    @classmethod
+    def get_unspent(cls, address, x_api_key=None):
+        pass
+
+    @classmethod
+    def get_unspent_btc(cls, address, x_api_key=None):
+        pass
+
+    @classmethod
+    def get_transactions_by_address(cls, address, x_api_key=None):
+        r = requests.get(cls.MAIN_ADDRESS_API.format(address), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()
+        return r.json()
+
+    @classmethod
+    def get_transactions(cls, txids, x_api_key=None):
+        txids_query = ''
+        for txid in txids:
+            if txid != txids[0]:
+                txids_query = txids_query + ','
+            txids_query = txids_query + txid
+        r = requests.get(cls.MAIN_TXS_API.format(txids_query), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()
+        response = r.json()
+        return response
+
+    @classmethod
+    def get_transactions_btc(cls, address, x_api_key=None):
+        pass
+
+    @classmethod
+    def get_transaction(cls, txid, x_api_key=None):
+        r = requests.get(cls.MAIN_TX_API.format(txid), timeout=DEFAULT_TIMEOUT)
+        r.raise_for_status()
+        return r.json()
+
+    @classmethod
+    def get_transaction_btc(cls, txid, x_api_key=None):
+        pass
+
+    @classmethod
+    def get_balance(cls, address, x_api_key=None):
+        pass
+
+    @classmethod
+    def get_balance_btc(cls, address, x_api_key=None):
+        pass
+
+
 class NetworkAPI:
     IGNORED_ERRORS = (
         requests.exceptions.RequestException,
@@ -344,9 +422,10 @@ class NetworkAPI:
     GET_BALANCE_MAIN = [BitcoinDotComAPI.get_balance,
                         BitcoreAPI.get_balance]
     GET_BALANCE_MAIN_BTC = [BitcoreAPI.get_balance_btc]
-    GET_TRANSACTIONS_MAIN = [FullstackDotCash.get_transactions]
+    GET_TRANSACTIONS_MAIN = [BlockchairApi.get_transactions]
     GET_TRANSACTIONS_MAIN_BTC = [BitcoreAPI.get_transactions_btc]
     GET_TRANSACTION_MAIN_BTC = [TatumApi.get_transaction_btc]
+    GET_BLOCK_NUMBER = [TatumApi.get_block_number, BlockchairApi.get_block_number]
     GET_BLOCK_NUMBER_BTC = [TatumApi.get_block_number_btc]
 
     GET_UNSPENT_MAIN = [BitcoinDotComAPI.get_unspent,
@@ -355,7 +434,8 @@ class NetworkAPI:
     BROADCAST_TX_MAIN = [FullstackDotCash.broadcast_tx, 
                         BitcoinDotComAPI.broadcast_tx,
                         BitcoreAPI.broadcast_tx]
-    GET_TX_MAIN = [TatumApi.get_transaction]
+    GET_TX_MAIN = [BlockchairApi.get_transaction]
+    GET_TXS_BY_ADDRESS_MAIN = [BlockchairApi.get_transactions_by_address]
     GET_TX_AMOUNT_MAIN = [BitcoinDotComAPI.get_tx_amount,
                           BitcoreAPI.get_tx_amount]
     GET_RAW_TX_MAIN = [BitcoinDotComAPI.get_raw_transaction]
@@ -409,6 +489,24 @@ class NetworkAPI:
         for api_call in cls.GET_TRANSACTIONS_MAIN:
             try:
                 return api_call(txs)
+            except cls.IGNORED_ERRORS:
+                pass
+
+        raise ConnectionError('All APIs are unreachable.')
+
+    @classmethod
+    def get_transactions_by_address(cls, address, x_api_key=None):
+        """Gets the ID of all transactions related to an address.
+
+        :param address: The address in question.
+        :type address: ``str``
+        :raises ConnectionError: If all API services fail.
+        :rtype: ``list`` of ``str``
+        """
+
+        for api_call in cls.GET_TXS_BY_ADDRESS_MAIN:
+            try:
+                return api_call(address, x_api_key)
             except cls.IGNORED_ERRORS:
                 pass
 
@@ -578,6 +676,17 @@ class NetworkAPI:
         """
 
         for api_call in cls.GET_BLOCK_NUMBER_BTC:
+            try:
+                return api_call(x_api_key)
+            except cls.IGNORED_ERRORS:
+                pass
+
+        raise ConnectionError('All APIs are unreachable.')
+
+    
+    @classmethod
+    def get_block_number(cls, x_api_key=None):
+        for api_call in cls.GET_BLOCK_NUMBER:
             try:
                 return api_call(x_api_key)
             except cls.IGNORED_ERRORS:
