@@ -40,6 +40,7 @@ class InsightAPI:
     def broadcast_tx(cls, tx_hex):  # pragma: no cover
         r = requests.post(cls.MAIN_TX_PUSH_API, json={
                           cls.TX_PUSH_PARAM: tx_hex, 'network': 'mainnet', 'coin': 'BCH'}, timeout=DEFAULT_TIMEOUT)
+        print(r.status_code)
         return True if r.status_code == 200 else False
 
 
@@ -121,6 +122,7 @@ class BitcoinDotComAPI():
     @classmethod
     def broadcast_tx(cls, tx_hex):  # pragma: no cover
         r = requests.get(cls.MAIN_TX_PUSH_API.format(tx_hex))
+        print(r.status_code)
         return True if r.status_code == 200 else False
 
 
@@ -166,6 +168,7 @@ class FullstackDotCash():
     @classmethod
     def broadcast_tx(cls, tx_hex):  # pragma: no cover
         r = requests.get(cls.MAIN_TX_PUSH_API.format(tx_hex))
+        print(r.status_code)
         return True if r.status_code == 200 else False
 
 
