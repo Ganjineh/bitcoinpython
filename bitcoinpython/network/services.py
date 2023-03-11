@@ -37,7 +37,7 @@ class InsightAPI:
         return (Decimal(response['vout'][txindex]['value']) * BCH_TO_SAT_MULTIPLIER).normalize()
 
     @classmethod
-    def broadcast_tx(cls, tx_hex):  # pragma: no cover
+    def broadcast_tx(cls, tx_hex, x_api_key=None):  # pragma: no cover
         r = requests.post(cls.MAIN_TX_PUSH_API, json={
                           cls.TX_PUSH_PARAM: tx_hex, 'network': 'mainnet', 'coin': 'BCH'}, timeout=DEFAULT_TIMEOUT)
         print(r.status_code)
@@ -120,7 +120,7 @@ class BitcoinDotComAPI():
         return response
 
     @classmethod
-    def broadcast_tx(cls, tx_hex):  # pragma: no cover
+    def broadcast_tx(cls, tx_hex, x_api_key=None):  # pragma: no cover
         r = requests.get(cls.MAIN_TX_PUSH_API.format(tx_hex))
         print(r.status_code)
         return True if r.status_code == 200 else False
@@ -166,7 +166,7 @@ class FullstackDotCash():
         pass
 
     @classmethod
-    def broadcast_tx(cls, tx_hex):  # pragma: no cover
+    def broadcast_tx(cls, tx_hex, x_api_key=None):  # pragma: no cover
         r = requests.get(cls.MAIN_TX_PUSH_API.format(tx_hex))
         print(r.status_code)
         return True if r.status_code == 200 else False
@@ -262,6 +262,7 @@ class TatumApi(InsightAPI):
     MAIN_TX_API = MAIN_ENDPOINT + 'transaction/{}'
     MAIN_TXS_BY_ADDRESS_API = MAIN_ENDPOINT + 'transaction/address/{}'
     MAIN_BLOCK_INFO = MAIN_ENDPOINT + 'info'
+    MAIN_TX_PUSH_API = MAIN_ENDPOINT + 'broadcast'
     """ for BTC  """
     MAIN_ENDPOINT_BTC = 'https://api-eu1.tatum.io/v3/bitcoin/'
     MAIN_TX_API_BTC = MAIN_ENDPOINT_BTC + 'transaction/{}'
@@ -331,6 +332,15 @@ class TatumApi(InsightAPI):
     @classmethod
     def get_balance_btc(cls, address):
         pass
+
+    @classmethod
+    def broadcast_tx(cls, tx_hex, x_api_key=None):
+        headers = {
+            "Content-Type": "application/json",
+             "x-api-key": x_api_key
+        }
+        res = requests.post(cls.MAIN_TX_PUSH_API, data={"txData": tx_hex}, headers=headers)
+        return True if res.status_code == 200 else False
 
 
 class BlockchairApi(InsightAPI):
@@ -434,7 +444,8 @@ class NetworkAPI:
     GET_UNSPENT_MAIN = [BitcoinDotComAPI.get_unspent,
                         BitcoreAPI.get_unspent]
     GET_UNSPENT_MAIN_BTC = [BitcoreAPI.get_unspent_btc]
-    BROADCAST_TX_MAIN = [FullstackDotCash.broadcast_tx, 
+    BROADCAST_TX_MAIN = [TatumApi.broadcast_tx,
+                        FullstackDotCash.broadcast_tx,
                         BitcoinDotComAPI.broadcast_tx,
                         BitcoreAPI.broadcast_tx]
     GET_TX_MAIN = [BlockchairApi.get_transaction]
@@ -643,7 +654,7 @@ class NetworkAPI:
         raise ConnectionError('All APIs are unreachable.')
 
     @classmethod
-    def broadcast_tx(cls, tx_hex):  # pragma: no cover
+    def broadcast_tx(cls, tx_hex, x_api_key=None):  # pragma: no cover
         """Broadcasts a transaction to the blockchain.
 
         :param tx_hex: A signed transaction in hex form.
@@ -654,7 +665,7 @@ class NetworkAPI:
 
         for api_call in cls.BROADCAST_TX_MAIN:
             try:
-                success = api_call(tx_hex)
+                success = api_call(tx_hex, x_api_key)
                 if not success:
                     continue
                 return
