@@ -339,7 +339,7 @@ class TatumApi(InsightAPI):
             "Content-Type": "application/json",
              "x-api-key": x_api_key
         }
-        res = requests.post(cls.MAIN_TX_PUSH_API, data={"txData": tx_hex}, headers=headers)
+        res = requests.post(cls.MAIN_TX_PUSH_API, json={"txData": tx_hex}, headers=headers)
         return True if res.status_code == 200 else False
 
 
