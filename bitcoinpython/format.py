@@ -43,13 +43,12 @@ def address_to_public_key_hash(address):
         raise InvalidAddress
 
     address = cashaddress.Address._cash_string(address)
+    # if "P2PKH" not in address.version:
+    #     # Bitcash currently only has support for P2PKH transaction types
+    #     # P2SH and others will raise ValueError
+    #     raise ValueError
 
-    if "P2PKH" not in address.version:
-        # Bitcash currently only has support for P2PKH transaction types
-        # P2SH and others will raise ValueError
-        raise ValueError
-
-    return bytes(address.payload)
+    return [bytes(address.payload), address.version]
 
 
 def get_version(address):

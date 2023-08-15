@@ -151,7 +151,7 @@ class PrivateKey(BaseKey):
     @property
     def scriptcode(self):
         self._scriptcode = (OP_DUP + OP_HASH160 + OP_PUSH_20 +
-                            address_to_public_key_hash(self.address) +
+                            address_to_public_key_hash(self.address)[0] +
                             OP_EQUALVERIFY + OP_CHECKSIG)
         return self._scriptcode
 

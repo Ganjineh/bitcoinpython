@@ -219,10 +219,12 @@ def construct_output_block(outputs, custom_pushdata=False):
 
         # Real recipient
         if amount:
-            script = (OP_DUP + OP_HASH160 + OP_PUSH_20 +
-                      address_to_public_key_hash(dest) +
-                      OP_EQUALVERIFY + OP_CHECKSIG)
-
+            script = address_to_public_key_hash(dest)[0]
+            version = address_to_public_key_hash(dest)[1]
+            if "P2PKH" in version:
+                script = (OP_DUP + OP_HASH160 + OP_PUSH_20 + script + OP_EQUALVERIFY + OP_CHECKSIG)
+            elif "P2SH" in version:
+                script = (OP_HASH160 + b'\x14' + script + b'\x87')
             output_block += amount.to_bytes(8, byteorder='little')
 
         # Blockchain storage
