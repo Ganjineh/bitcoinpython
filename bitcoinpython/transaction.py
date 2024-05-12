@@ -183,19 +183,17 @@ def sanitize_tx_data(unspents, outputs, fee, leftover, combine=True, message=Non
         total_in += sum(unspent.amount for unspent in unspents)
 
     else:
-        unspents = sorted(unspents, key=lambda x: x.amount)
-
         index = 0
-
-        for index, unspent in enumerate(unspents):
-            total_in += unspent.amount
-            calculated_fee = estimate_tx_fee(len(unspents[:index + 1]), num_outputs, fee, compressed, total_op_return_size)
+        final_unspents = []
+        for index in range(len(unspents)):
+            total_in += unspents[len(unspents) - 1 - index].amount
+            calculated_fee = estimate_tx_fee(len(final_unspents), num_outputs, fee, compressed, total_op_return_size)
             total_out = sum_outputs + calculated_fee
-
+            final_unspents.append(unspents[len(unspents) - 1 - index])
             if total_in >= total_out:
                 break
 
-        unspents[:] = unspents[:index + 1]
+        unspents = final_unspents
 
     remaining = total_in - total_out
 
